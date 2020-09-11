@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ptbr">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Regressão linear</title>
+  <link href="/css/style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+    <div class="row">
+        <div class="grafico col-xl-5" id="divGrafico">
+            <canvas id="meuCanvas">
+                Seu navegador não suporta Canvas do HTML5.
+            </canvas>
+        </div>
+        <div class="col-xl-5">
+            <div class="entrada">
+                <p>Pontos:</p>
+
+                <div class="TabelaDocumentos">
+                    <table id="tabelaDoc">
+                        <tr>
+                            <th>X</th>
+                            <th>Y</th>
+                        </tr>
+                    </table>
+                </div>
+
+                <input class="form-control" type="number" placeholder="X" id="campoX" step=0.01>
+                <input class="form-control" type="number" placeholder="Y" id="campoY" step=0.01>
+                <button class="btn" onclick="addPonto()">Adicionar</button>
+            </div>
+            <div class="info">
+                <div class="coluna">
+                    <div class="pc-50 mr">
+                        Máx. de iterações:<br><input class="form-control f2" type="number" id="nIt"><br>
+                        Constante A:<br><input class="form-control f2" type="number" id="nA" step=0.01><br>
+                        Constante B:<br><input class="form-control f2" type="number" id="nB" step=0.01><br>
+                        <button class="btn bt2" onclick="enviaPontos()">Iniciar</button>
+                    </div>
+
+                    <div class="pc-50 saida">
+                        <p>Iterações: <span class="txt-saida" id="iteracoes">0</span></p>
+                        <p>Erro total: <span class="txt-saida" id="erro">0</span></p>
+                        <p>Função Atual: <br><span class="txt-saida" id="funcao"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io('http://localhost:3000');
+        var funcao = "";
+
+        socket.on('update-value', function (value) {
+            a = 1*value.a;
+            b = 1*value.b;
+            b >= 0 ? funcao = "f(x) = "+a+"x + "+b : funcao = "f(x) = "+a+"x - "+Math.abs(b);
+            document.getElementById('iteracoes').innerHTML = value.iteracoes;
+            document.getElementById('erro').innerHTML = value.erro;
+            document.getElementById('funcao').innerHTML= funcao;
+            atualizaPlano();
+        });
+
+        var pontos=[];
+        var a=0;
+        var b=0;
+        var maiorX=0;
+        var maiorY=0;
+        var maior=0;
+
+        var wDiv = document.getElementById('divGrafico').offsetWidth;
+        var canvas = document.getElementById('meuCanvas');
+        canvas.width = wDiv-4;
+        canvas.height = canvas.width;
+        document.getElementById("divGrafico").style.height = (canvas.height+"px");
+        const w = canvas.width;
+        const h = canvas.height;
+        var pincel = canvas.getContext('2d');
+
+        atualizaPlano();
+
+        function atualizaPlano(){
+            pincel.clearRect(0, 0, w, h);
+            
+            if(pontos.length > 0){
+                maiorX=Math.abs(pontos[0].x);
+                maiorY=Math.abs(pontos[0].y);
+                pontos.forEach(function(item){
+                    if(Math.abs(item.x) > maiorX) maiorX=Math.abs(item.x);
+                    if(Math.abs(item.y) > maiorY) maiorY=Math.abs(item.y);
+                });
+                maiorX>maiorY ? maior=maiorX : maior=maiorY;
+                maior = maior-(maior%10)+10;
+            }
+            
+            desenhaEixos();
+            pontos.forEach(function(item){
+                desenhaPonto(item.x, item.y);
+            });
+
+            if(a!=0 || b!=0){
+                desenhaReta(a, b);
+            }
+        }
+
+        function addPonto(){
+            var xdig = document.getElementById("campoX").value;
+            var ydig = document.getElementById("campoY").value;
+            if(xdig == "") xdig="0";
+            if(ydig == "") ydig="0";
+            pontos.push({x: xdig, y: ydig});
+
+            var table = document.getElementById("tabelaDoc");
+            var row = table.insertRow(1);
+            var cell1 = row.insertCell(0);
+            var cell2 = row.insertCell(1);
+            cell1.innerHTML = xdig;
+            cell2.innerHTML = ydig;
+
+            atualizaPlano();
+        }
+
+        function desenhaReta(a, b){
+            var x1 = xRelativo(-maior);
+            var y1 = yRelativo((a*(-maior)) + b);
+            var x2 = xRelativo(maior);
+            var y2 = yRelativo((a*maior) + b);
+            pincel.beginPath();
+            pincel.strokeStyle = 'rgba(255,0,0,1)';
+            pincel.moveTo(x1, y1);
+            pincel.lineTo(x2, y2);
+            pincel.stroke();
+            pincel.closePath();
+        }
+
+        function desenhaPonto(x, y){
+            var xd = xRelativo(x);
+            var yd = yRelativo(y);
+            pincel.beginPath();
+            pincel.fillStyle = 'rgba(0,0,255,1)';
+            pincel.arc(xd, yd, 3, 0, 2 * Math.PI);
+            pincel.fill();
+            pincel.closePath();
+            
+        }
+
+        function xRelativo(x){
+            return (w/2)+((x*(w/2))/maior);
+        }
+
+        function yRelativo(y){
+            return (h/2)-((y*(h/2))/maior);
+        }
+    
+        function desenhaEixos(){
+            pincel.beginPath();
+            pincel.strokeStyle = 'rgba(0,0,0,1)';
+            pincel.moveTo(w/2, 0);
+            pincel.lineTo(w/2, h);
+            pincel.moveTo(0, h/2);
+            pincel.lineTo(w, h/2);
+            pincel.stroke();
+            pincel.closePath();
+        }   
+
+        function enviaPontos(){
+            if(pontos.length==0){
+                alert("Insira ao menos 1 ponto!");
+                return;
+            }
+            var iniA = document.getElementById("nA").value;
+            var iniB = document.getElementById("nB").value;
+            var maxIte = document.getElementById("nIt").value;
+            if((iniA=="")||(iniB=="")||(maxIte=="")){
+                alert("Preencha os campos necessários!");
+                return;
+            }
+            socket.emit("send", {pontos: pontos, iniA: iniA, iniB: iniB, maxIte: maxIte});
+        }
+    </script>
+
+</body>
+</html>

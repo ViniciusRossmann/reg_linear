@@ -1,0 +1,22 @@
+{
+  "name": "reg_linear",
+  "version": "1.0.0",
+  "description": "Projeto simples para representar visualmente o algoritmo de regressão linear.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "author": "Vinicius Rossmann Nunes",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViniciusRossmann/reg_linear.git"
+  },
+  "dependencies": {
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.4",
+    "socket.io": "^2.3.0"
+  }
+}
